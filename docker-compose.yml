@@ -1,0 +1,86 @@
+# docker-compose.yml
+
+services:
+  # ---------------------------------------
+  # 1. Сервис приложения (FastAPI + ML)
+  # ---------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # Переменные окружения, которые использует main.py
+    environment:
+      # Для асинхронного движка (asyncpg)
+      DATABASE_URL: postgresql+asyncpg://postgres:password@db:5432/gamenews
+      # Для Elasticsearch
+      ELASTIC_URL: http://es:9200
+      ES_INDEX: news_index
+    ports:
+      - "8080:8080"
+    # Зависим от базы данных и Elasticsearch
+    depends_on:
+      db:
+        condition: service_healthy
+      es:
+        condition: service_healthy
+    # Режим разработки: монтируем локальный код для 'reload=True'
+    volumes:
+      - .:/app
+
+  # ---------------------------------------
+  # 2. Сервис базы данных (PostgreSQL)
+  # ---------------------------------------
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: gamenews
+    volumes:
+      # Сохраняем данные в именованный том, чтобы они не терялись
+      - postgres_data:/var/lib/postgresql/data/
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    # Порт 5432 открываем для отладки, если нужно
+    # ports:
+    #   - "5432:5432"
+
+  # ---------------------------------------
+  # 3. Сервис Elasticsearch (ES)
+  # ---------------------------------------
+  es:
+    image: elasticsearch:8.10.2 # Выберите стабильную версию
+    restart: always
+    environment:
+      # Внимание: для production нужен "discovery.type: multi-node"
+      discovery.type: single-node
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m" # Ограничение памяти
+      xpack.security.enabled: "false" # Отключаем безопасность для простоты
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    # Открываем порт для отладки/доступа
+    # ports:
+    #   - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+# ---------------------------------------
+# Тома для сохранения данных
+# ---------------------------------------
+volumes:
+  postgres_data:
+  elasticsearch_data:

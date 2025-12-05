@@ -1,0 +1,13 @@
+# requirements.txt
+fastapi
+uvicorn[standard]
+pydantic
+sqlmodel
+sqlalchemy
+asyncpg
+psycopg2-binary # или psycopg для синхронного движка
+elasticsearch
+scikit-learn
+numpy
+scipy
+pandas # На всякий случай, если scikit-learn требует

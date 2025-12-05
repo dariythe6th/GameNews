@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Персонализированные игровые новости</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .read-article {
+            opacity: 0.8;
+            border-left: 4px solid #10b981;
+            background: linear-gradient(90deg, rgba(16, 185, 129, 0.1) 0%, rgba(31, 41, 55, 0.8) 100%);
+            transition: all 0.4s ease;
+        }
+
+        .article-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+
+        .article-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+
+        .score-high {
+            background: linear-gradient(90deg, #10b981, #34d399);
+        }
+
+        .score-medium {
+            background: linear-gradient(90deg, #f59e0b, #fbbf24);
+        }
+
+        .score-low {
+            background: linear-gradient(90deg, #6b7280, #9ca3af);
+        }
+
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-gray-800 min-h-screen text-white">
+<div class="max-w-6xl mx-auto px-4 py-8">
+    <!-- Header -->
+    <header class="text-center mb-12">
+        <div class="inline-flex items-center justify-center mb-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white p-3 rounded-full">
+            <i class="fas fa-gamepad text-2xl mr-3"></i>
+            <h1 class="text-3xl font-bold">Персонализированные игровые новости</h1>
+        </div>
+        <p class="text-gray-300 max-w-2xl mx-auto text-lg">
+            Система рекомендаций игрового контента на основе ваших предпочтений. Отмечайте прочитанные статьи для улучшения рекомендаций.
+        </p>
+    </header>
+
+    <!-- User Selection Panel -->
+    <div class="bg-gray-800 rounded-xl p-6 mb-8 shadow-xl border border-gray-700">
+        <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="flex items-center">
+                <i class="fas fa-user text-blue-400 text-xl mr-3"></i>
+                <div>
+                    <h2 class="text-xl font-semibold">Профиль игрока</h2>
+                    <p class="text-gray-400 text-sm">Выберите пользователя для просмотра персонализированной ленты</p>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-4">
+                <div class="relative">
+                    <select id="userSelect" class="bg-gray-700 text-white p-3 pr-10 rounded-lg border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer">
+                        <option value="1">Игрок 1 (Default)</option>
+                        <option value="2">Игрок 2</option>
+                        <option value="3">Игрок 3</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                </div>
+
+                <button onclick="initNewUsers()" class="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 px-4 py-3 rounded-lg font-medium transition-all flex items-center justify-center gap-2">
+                    <i class="fas fa-sync-alt"></i>
+                    <span>Инициализировать данные</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- User Stats -->
+        <div id="userStats" class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-gray-750 rounded-lg p-4 flex items-center">
+                <div class="bg-blue-900 p-3 rounded-full mr-4">
+                    <i class="fas fa-newspaper text-blue-400"></i>
+                </div>
+                <div>
+                    <p class="text-gray-400 text-sm">Всего статей</p>
+                    <p class="text-xl font-bold">20</p>
+                </div>
+            </div>
+
+            <div class="bg-gray-750 rounded-lg p-4 flex items-center">
+                <div class="bg-green-900 p-3 rounded-full mr-4">
+                    <i class="fas fa-eye text-green-400"></i>
+                </div>
+                <div>
+                    <p class="text-gray-400 text-sm">Прочитано</p>
+                    <p class="text-xl font-bold">0</p>
+                </div>
+            </div>
+
+            <div class="bg-gray-750 rounded-lg p-4 flex items-center">
+                <div class="bg-purple-900 p-3 rounded-full mr-4">
+                    <i class="fas fa-chart-line text-purple-400"></i>
+                </div>
+                <div>
+                    <p class="text-gray-400 text-sm">Средняя релевантность</p>
+                    <p class="text-xl font-bold">0%</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- News Feed -->
+    <div class="mb-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-2xl font-bold flex items-center">
+                <i class="fas fa-stream text-blue-400 mr-3"></i>
+                Ваша игровая лента
+            </h2>
+            <div class="text-sm bg-gray-800 px-3 py-1 rounded-full">
+                <span id="articleCount">0</span> статей
+            </div>
+        </div>
+
+        <div id="feed" class="grid gap-6">
+            <!-- Loading Skeleton -->
+            <div class="space-y-6">
+                <div class="bg-gray-800 rounded-xl p-6 animate-pulse">
+                    <div class="h-6 bg-gray-700 rounded w-3/4 mb-4"></div>
+                    <div class="space-y-2">
+                        <div class="h-4 bg-gray-700 rounded"></div>
+                        <div class="h-4 bg-gray-700 rounded w-5/6"></div>
+                        <div class="h-4 bg-gray-700 rounded w-4/6"></div>
+                    </div>
+                    <div class="flex justify-between mt-4">
+                        <div class="h-6 bg-gray-700 rounded w-1/4"></div>
+                        <div class="h-10 bg-gray-700 rounded w-1/5"></div>
+                    </div>
+                </div>
+
+                <div class="bg-gray-800 rounded-xl p-6 animate-pulse">
+                    <div class="h-6 bg-gray-700 rounded w-2/3 mb-4"></div>
+                    <div class="space-y-2">
+                        <div class="h-4 bg-gray-700 rounded"></div>
+                        <div class="h-4 bg-gray-700 rounded w-5/6"></div>
+                        <div class="h-4 bg-gray-700 rounded w-3/4"></div>
+                    </div>
+                    <div class="flex justify-between mt-4">
+                        <div class="h-6 bg-gray-700 rounded w-1/4"></div>
+                        <div class="h-10 bg-gray-700 rounded w-1/5"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center text-gray-500 text-sm mt-12 pt-6 border-t border-gray-800">
+        <p>Система рекомендаций игрового контента &copy; 2023</p>
+    </footer>
+</div>
+
+<script>
+    const API_BASE = 'http://localhost:8080/api/news';
+
+    // Initialize users and data
+    async function initNewUsers() {
+        try {
+            const button = document.querySelector('button[onclick="initNewUsers()"]');
+            const originalText = button.innerHTML;
+
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Инициализация...</span>';
+            button.disabled = true;
+
+            await fetch(`${API_BASE}/init-data`, { method: 'POST' });
+
+            button.innerHTML = '<i class="fas fa-check"></i><span>Готово!</span>';
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }, 2000);
+
+            showNotification('Инициализация данных и профилей выполнена успешно!', 'success');
+            loadFeed();
+        } catch (error) {
+            console.error("Ошибка инициализации:", error);
+            showNotification('Ошибка при инициализации. Убедитесь, что бэкенд запущен.', 'error');
+        }
+    }
+
+    // Load news feed
+    async function loadFeed() {
+        const userId = document.getElementById("userSelect").value;
+        const feed = document.getElementById("feed");
+
+        // Show loading state
+        feed.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-12 text-gray-400">
+                <i class="fas fa-spinner fa-spin text-4xl mb-4"></i>
+                <p>Загрузка персонализированной ленты...</p>
+            </div>
+        `;
+
+        try {
+            const res = await fetch(`${API_BASE}/feed?userId=${userId}&limit=20`);
+            if (!res.ok) throw new Error('Ошибка загрузки ленты');
+            const news = await res.json();
+
+            if (news.length === 0) {
+                feed.innerHTML = `
+                    <div class="text-center py-12 bg-gray-800 rounded-xl">
+                        <i class="fas fa-inbox text-5xl text-gray-600 mb-4"></i>
+                        <h3 class="text-xl font-semibold mb-2">Нет новостей для отображения</h3>
+                        <p class="text-gray-400">Попробуйте инициализировать данные или выбрать другого пользователя</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Update article count
+            document.getElementById('articleCount').textContent = news.length;
+
+            // Calculate average score and read count for stats
+            let totalScore = 0;
+            let readCount = 0;
+
+            feed.innerHTML = news.map((n, index) => {
+                totalScore += n.score;
+                if (n.read) readCount++;
+
+                const scorePercent = (n.score * 100).toFixed(2);
+                let scoreClass = 'score-low';
+                if (n.score > 0.7) scoreClass = 'score-high';
+                else if (n.score > 0.4) scoreClass = 'score-medium';
+
+                return `
+                    <div id="article-${n.id}" class="article-card bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-700 fade-in" style="animation-delay: ${index * 0.05}s">
+                        <div class="flex justify-between items-start mb-4">
+                            <h2 class="text-xl font-bold text-white pr-4">${n.title}</h2>
+                            <span class="flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium ${scoreClass} text-white">
+                                ${scorePercent}%
+                            </span>
+                        </div>
+                        <p class="text-gray-300 mb-6 leading-relaxed">${n.content}</p>
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center text-sm text-gray-400">
+                                <i class="fas fa-clock mr-1"></i>
+                                <span>Сегодня</span>
+                            </div>
+                            <button onclick="markAsRead(${userId}, ${n.id})"
+                                    class="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 px-5 py-2.5 rounded-lg font-medium transition-all flex items-center gap-2 ${n.read ? 'opacity-50 cursor-not-allowed' : ''}"
+                                    ${n.read ? 'disabled' : ''}>
+                                ${n.read ? '<i class="fas fa-check"></i> Прочитано' : '<i class="far fa-eye"></i> Отметить прочитанным'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Update user stats
+            updateUserStats(news.length, readCount, totalScore / news.length);
+
+        } catch (error) {
+            console.error(error);
+            feed.innerHTML = `
+                <div class="text-center py-12 bg-red-900/20 rounded-xl border border-red-800/50">
+                    <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-4"></i>
+                    <h3 class="text-xl font-semibold mb-2 text-red-300">Ошибка загрузки</h3>
+                    <p class="text-red-200/70">Не удалось загрузить ленту. Убедитесь, что бэкенд запущен на localhost:8080.</p>
+                    <button onclick="loadFeed()" class="mt-4 bg-red-700 hover:bg-red-600 px-4 py-2 rounded-lg transition-colors">
+                        <i class="fas fa-redo mr-2"></i> Попробовать снова
+                    </button>
+                </div>
+            `;
+        }
+    }
+
+    // Mark article as read
+    async function markAsRead(userId, newsId) {
+        const button = document.querySelector(`#article-${newsId} button`);
+        const articleDiv = document.getElementById(`article-${newsId}`);
+
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Обработка...';
+
+        try {
+            await fetch(`${API_BASE}/${newsId}/view?userId=${userId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+            });
+
+            // Visual feedback
+            articleDiv.classList.add('read-article');
+            button.innerHTML = '<i class="fas fa-check"></i> Прочитано';
+            button.classList.remove('from-blue-500', 'to-blue-600', 'hover:from-blue-600', 'hover:to-blue-700');
+            button.classList.add('from-green-500', 'to-green-600');
+
+            showNotification('Статья отмечена как прочитанная! Рекомендации обновлены.', 'success');
+
+            // Update stats after a short delay
+            setTimeout(loadFeed, 1000);
+        } catch (error) {
+            console.error(error);
+            button.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Ошибка';
+            button.classList.remove('from-blue-500', 'to-blue-600');
+            button.classList.add('from-red-500', 'to-red-600');
+
+            setTimeout(() => {
+                button.innerHTML = '<i class="far fa-eye"></i> Отметить прочитанным';
+                button.classList.remove('from-red-500', 'to-red-600');
+                button.classList.add('from-blue-500', 'to-blue-600', 'hover:from-blue-600', 'hover:to-blue-700');
+                button.disabled = false;
+            }, 2000);
+
+            showNotification('Ошибка при обновлении статуса статьи.', 'error');
+        }
+    }
+
+    // Update user statistics
+    function updateUserStats(totalArticles, readArticles, avgScore) {
+        const statsElements = document.querySelectorAll('#userStats p:nth-child(2)');
+        if (statsElements.length >= 3) {
+            statsElements[0].textContent = totalArticles;
+            statsElements[1].textContent = readArticles;
+            statsElements[2].textContent = `${(avgScore * 100).toFixed(1)}%`;
+        }
+    }
+
+    // Show notification
+    function showNotification(message, type = 'info') {
+        // Remove existing notifications
+        const existingNotification = document.getElementById('notification');
+        if (existingNotification) {
+            existingNotification.remove();
+        }
+
+        const notification = document.createElement('div');
+        notification.id = 'notification';
+        notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm transform transition-transform duration-300 translate-x-full ${type === 'success' ? 'bg-green-900 text-green-100' : type === 'error' ? 'bg-red-900 text-red-100' : 'bg-blue-900 text-blue-100'}`;
+        notification.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'} mr-3"></i>
+                <p>${message}</p>
+            </div>
+        `;
+
+        document.body.appendChild(notification);
+
+        // Animate in
+        setTimeout(() => {
+            notification.classList.remove('translate-x-full');
+        }, 10);
+
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            notification.classList.add('translate-x-full');
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }, 5000);
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadFeed();
+
+        // Add change event listener to user select
+        document.getElementById('userSelect').addEventListener('change', loadFeed);
+    });
+</script>
+</body>
+</html>
